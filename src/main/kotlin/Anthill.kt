@@ -1,14 +1,20 @@
+import java.io.File
 import kotlin.random.Random
 
 class Anthill(
     private val width: Int,
     private val height: Int,
-    private val steps: Int
+    private val stonePercentage: Float,
+    private val continueMovingPercentage: Float,
+    private val addNewAntPercentage: Float
 ) {
     private val hill: Array<Array<String>> = Array(height) { Array(width) { GROUND } }
-    private var currentStep: Pair<Int, Int> = Pair(-1, -1)
-    private var hasMoves = true
-    private val random = Random(System.currentTimeMillis())
+    private var ants: MutableList<Ant> = mutableListOf()
+    private var hasAnts = true
+
+    init {
+        ants.add(Ant())
+    }
 
     fun printAnthill() {
         print("   ")
@@ -30,16 +36,27 @@ class Anthill(
 //        }
     }
 
+    fun printAnthillIntoFile(file: File) {
+        file.printWriter().use { out ->
+            for (row in hill) {
+                for (element in row) {
+                    out.append(element)
+                }
+                out.append("\n")
+            }
+        }
+    }
+
     private fun digEntry() {
         if (hill[0][width / 2] != STONE) {
             hill[0][width / 2] = SPACE
-            currentStep = Pair(0, width / 2)
+            ants[0].currentStep = Pair(0, width / 2)
         }
     }
 
     private fun placeStones() {
         val totalArea = width * height
-        var remainingArea = (totalArea * 0.15).toInt()
+        var remainingArea = (totalArea * stonePercentage).toInt()
         //println("total are: $totalArea, stone area: $remainingArea")
 
         while (remainingArea > 0) {
@@ -69,12 +86,13 @@ class Anthill(
 
     private fun placeSmallStone(x: Int, y: Int, isHorizontal: Boolean) {
         hill[y][x] = STONE
-        if (isHorizontal)
+        if (isHorizontal) {
             if (x + 1 < width)
                 hill[y][x + 1] = STONE
-        if (!isHorizontal)
+        } else {
             if (y + 1 < height)
                 hill[y + 1][x] = STONE
+        }
     }
 
     private fun placeMediumStone(x: Int, y: Int) {
@@ -120,60 +138,95 @@ class Anthill(
         placeStones()
         digEntry()
 
-        if (currentStep.first == -1 || currentStep.second == -1)
+        if (ants[0].currentStep.first == -1 || ants[0].currentStep.second == -1)
             return
 
-        var step = 1
+        loop1@
+        while (hasAnts) {
+            if (ants.isNotEmpty())
+                loop2@
+                for (ant in ants) {
+                    //println("ants count: ${ants.size}")
+                    if (ants.isEmpty()) {
+                        hasAnts = false
+                        break
+                    }
 
-        while (hasMoves) {
-//            if (step >= steps) {
-//                hasMoves = false
-//                break
-//            }
+                    if (ant.step > 10) {
+                        val random = Random(System.currentTimeMillis())
+                        val stopOrNo = random.nextDouble()
+                        val addNewAntOrNo = random.nextDouble()
 
-            val randomNumber = random.nextDouble()
-            if (step > 10 && randomNumber > 0.8) {
-                break
-            }
+                        if (stopOrNo > continueMovingPercentage) {
+                            //println("$stopOrNo -- end of life for ant ${ant.currentStep.first} ${ant.currentStep.second}")
+                            ants.remove(ant)
+                            if (ants.isEmpty()) {
+                                hasAnts = false
+                                break@loop1
+                            }
+                        }
+                        if (addNewAntOrNo < addNewAntPercentage) {
+                            //println("$addNewAntOrNo -- adding new ant for ${ant.currentStep.first} ${ant.currentStep.second}")
+                            ant.apply { this.step = 1 }
+                            var newList = ants
+                            newList.add(
+                                Ant()
+                                    .apply { currentStep = Pair(ant.currentStep.first, ant.currentStep.second) }
+                                    .apply { this.step = 1 })
+                            ants = newList
+                            //println("new ants count: ${ants.size}")
+                            break@loop2
+                        }
+                    }
 
-            //print("current step: (${currentStep.first};${currentStep.second})")
+                    val availableDirections = getAvailableDirectionsForNextStep(ant)
+                    //println("for ${ant.currentStep.first}, ${ant.currentStep.second} from:$availableDirections")
 
-            val availableDirections = getAvailableDirectionsForNextStep()
+                    if (availableDirections.isEmpty()) {
+                        //println("no moves for ant ${ant.currentStep.first} ${ant.currentStep.second}")
+                        var newList = ants
+                        newList.remove(ant)
+                        if (newList.isEmpty()) {
+                            hasAnts = false
+                            break@loop1
+                        } else {
+                            ants = newList
+                            //println("new ants count: ${ants.size}")
+                            break@loop2
+                        }
+                    }
 
-            if (availableDirections.isEmpty())
-                break
+                    val randomDirection = availableDirections.random()
+                    //println(" choose direction: $randomDirection")
 
-            val randomDirection = availableDirections.random()
-            //print(" from:$availableDirections")
-            //println(" choose direction: $randomDirection")
+                    val (oldY, oldX) = ant.currentStep
 
-            val (oldY, oldX) = currentStep
+                    ant.currentStep = when (randomDirection) {
+                        Directions.LEFT -> {
+                            Pair(oldY, oldX - 1)
+                        }
 
-            currentStep = when (randomDirection) {
-                Directions.LEFT -> {
-                    Pair(oldY, oldX - 1)
+                        Directions.DOWN -> {
+                            Pair(oldY + 1, oldX)
+                        }
+
+                        Directions.RIGHT -> {
+                            Pair(oldY, oldX + 1)
+                        }
+                    }
+
+                    hill[ant.currentStep.first][ant.currentStep.second] = SPACE
+
+                    ant.step++
                 }
-
-                Directions.DOWN -> {
-                    Pair(oldY + 1, oldX)
-                }
-
-                Directions.RIGHT -> {
-                    Pair(oldY, oldX + 1)
-                }
-            }
-
-            hill[currentStep.first][currentStep.second] = SPACE
-
-            step++
 
             //printAnthill()
         }
     }
 
-    private fun getAvailableDirectionsForNextStep(): List<Directions> {
+    private fun getAvailableDirectionsForNextStep(ant: Ant): List<Directions> {
         var availableDirections = mutableListOf<Directions>()
-        val (currY, currX) = currentStep
+        val (currY, currX) = ant.currentStep
 
         // check for move LEFT
         if (currX - 1 >= 0)
