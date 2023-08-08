@@ -8,13 +8,8 @@ class Anthill(
     private val continueMovingPercentage: Float,
     private val addNewAntPercentage: Float
 ) {
-    private val hill: Array<Array<String>> = Array(height) { Array(width) { GROUND } }
+    private val hill: Array<Array<String>> = Array(height) { Array(width) { Ground.GROUND.strVal } }
     private var ants: MutableList<Ant> = mutableListOf()
-    private var hasAnts = true
-
-    init {
-        ants.add(Ant())
-    }
 
     fun printAnthill() {
         print("   ")
@@ -48,9 +43,9 @@ class Anthill(
     }
 
     private fun digEntry() {
-        if (hill[0][width / 2] != STONE) {
-            hill[0][width / 2] = SPACE
-            ants[0].currentStep = Pair(0, width / 2)
+        if (hill[0][width / 2] != Ground.STONE.strVal) {
+            hill[0][width / 2] = Ground.SPACE.strVal
+            ants.add(Ant(Pair(0, width / 2)))
         }
     }
 
@@ -84,52 +79,52 @@ class Anthill(
         //println("Stones List: $stonesList")
     }
 
-    private fun placeSmallStone(x: Int, y: Int, isHorizontal: Boolean) {
-        hill[y][x] = STONE
+    private fun placeSmallStone(x: Int, y: Int, isHorizontal: Boolean) { // TODO refactor stone placement
+        hill[y][x] = Ground.STONE.strVal
         if (isHorizontal) {
             if (x + 1 < width)
-                hill[y][x + 1] = STONE
+                hill[y][x + 1] = Ground.STONE.strVal
         } else {
             if (y + 1 < height)
-                hill[y + 1][x] = STONE
+                hill[y + 1][x] = Ground.STONE.strVal
         }
     }
 
     private fun placeMediumStone(x: Int, y: Int) {
-        hill[y][x] = STONE
+        hill[y][x] = Ground.STONE.strVal
         if (x + 1 < width)
-            hill[y][x + 1] = STONE
+            hill[y][x + 1] = Ground.STONE.strVal
         if (y + 1 < height)
-            hill[y + 1][x] = STONE
+            hill[y + 1][x] = Ground.STONE.strVal
         if (x + 1 < width && y + 1 < height)
-            hill[y + 1][x + 1] = STONE
+            hill[y + 1][x + 1] = Ground.STONE.strVal
     }
 
     private fun placeBigStone(x: Int, y: Int, isHorizontal: Boolean) {
-        hill[y][x] = STONE
+        hill[y][x] = Ground.STONE.strVal
         if (isHorizontal) {
             if (x + 1 < width)
-                hill[y][x + 1] = STONE
+                hill[y][x + 1] = Ground.STONE.strVal
             if (x + 2 < width)
-                hill[y][x + 2] = STONE
+                hill[y][x + 2] = Ground.STONE.strVal
             if (y + 1 < height) {
-                hill[y + 1][x] = STONE
+                hill[y + 1][x] = Ground.STONE.strVal
                 if (x + 1 < width)
-                    hill[y + 1][x + 1] = STONE
+                    hill[y + 1][x + 1] = Ground.STONE.strVal
                 if (x + 2 < width)
-                    hill[y + 1][x + 2] = STONE
+                    hill[y + 1][x + 2] = Ground.STONE.strVal
             }
         } else {
             if (y + 1 < height)
-                hill[y + 1][x] = STONE
+                hill[y + 1][x] = Ground.STONE.strVal
             if (y + 2 < height)
-                hill[y + 2][x] = STONE
+                hill[y + 2][x] = Ground.STONE.strVal
             if (x + 1 < width) {
-                hill[y][x + 1] = STONE
+                hill[y][x + 1] = Ground.STONE.strVal
                 if (y + 1 < height)
-                    hill[y + 1][x + 1] = STONE
+                    hill[y + 1][x + 1] = Ground.STONE.strVal
                 if (y + 2 < height)
-                    hill[y + 2][x + 1] = STONE
+                    hill[y + 2][x + 1] = Ground.STONE.strVal
             }
         }
     }
@@ -138,20 +133,15 @@ class Anthill(
         placeStones()
         digEntry()
 
-        if (ants[0].currentStep.first == -1 || ants[0].currentStep.second == -1)
+        if (ants.isEmpty())
             return
 
-        loop1@
-        while (hasAnts) {
-            if (ants.isNotEmpty())
-                loop2@
-                for (ant in ants) {
-                    //println("ants count: ${ants.size}")
-                    if (ants.isEmpty()) {
-                        hasAnts = false
-                        break
-                    }
+        while (canAntsMove()) {
+            val newAnts: MutableList<Ant> = mutableListOf()
 
+            for (ant in ants) {
+                //println("ants count: ${ants.size}")
+                if (ant.canMove)
                     if (ant.step > 10) {
                         val random = Random(System.currentTimeMillis())
                         val stopOrNo = random.nextDouble()
@@ -159,79 +149,70 @@ class Anthill(
 
                         if (stopOrNo > continueMovingPercentage) {
                             //println("$stopOrNo -- end of life for ant ${ant.currentStep.first} ${ant.currentStep.second}")
-                            ants.remove(ant)
-                            if (ants.isEmpty()) {
-                                hasAnts = false
-                                break@loop1
-                            }
+                            ant.apply { canMove = false }
                         }
                         if (addNewAntOrNo < addNewAntPercentage) {
                             //println("$addNewAntOrNo -- adding new ant for ${ant.currentStep.first} ${ant.currentStep.second}")
-                            ant.apply { this.step = 1 }
-                            var newList = ants
-                            newList.add(
-                                Ant()
-                                    .apply { currentStep = Pair(ant.currentStep.first, ant.currentStep.second) }
-                                    .apply { this.step = 1 })
-                            ants = newList
+                            ant.apply { step = 1 }
+                            newAnts.add(
+                                Ant(Pair(ant.currentStep.first, ant.currentStep.second))
+                            )
                             //println("new ants count: ${ants.size}")
-                            break@loop2
                         }
                     }
 
-                    val availableDirections = getAvailableDirectionsForNextStep(ant)
-                    //println("for ${ant.currentStep.first}, ${ant.currentStep.second} from:$availableDirections")
+                val availableDirections = getAvailableDirectionsForNextStep(ant)
+                //println("for ${ant.currentStep.first}, ${ant.currentStep.second} from:$availableDirections")
 
-                    if (availableDirections.isEmpty()) {
-                        //println("no moves for ant ${ant.currentStep.first} ${ant.currentStep.second}")
-                        var newList = ants
-                        newList.remove(ant)
-                        if (newList.isEmpty()) {
-                            hasAnts = false
-                            break@loop1
-                        } else {
-                            ants = newList
-                            //println("new ants count: ${ants.size}")
-                            break@loop2
-                        }
-                    }
-
-                    val randomDirection = availableDirections.random()
-                    //println(" choose direction: $randomDirection")
-
-                    val (oldY, oldX) = ant.currentStep
-
-                    ant.currentStep = when (randomDirection) {
-                        Directions.LEFT -> {
-                            Pair(oldY, oldX - 1)
-                        }
-
-                        Directions.DOWN -> {
-                            Pair(oldY + 1, oldX)
-                        }
-
-                        Directions.RIGHT -> {
-                            Pair(oldY, oldX + 1)
-                        }
-                    }
-
-                    hill[ant.currentStep.first][ant.currentStep.second] = SPACE
-
-                    ant.step++
+                if (availableDirections.isEmpty()) {
+                    //println("no moves for ant ${ant.currentStep.first} ${ant.currentStep.second}")
+                    ant.apply { canMove = false }
+                    continue
                 }
 
+                val randomDirection = availableDirections.random()
+                //println(" choose direction: $randomDirection")
+
+                val (oldY, oldX) = ant.currentStep
+
+                ant.currentStep = when (randomDirection) {
+                    Directions.LEFT -> {
+                        Pair(oldY, oldX - 1)
+                    }
+
+                    Directions.DOWN -> {
+                        Pair(oldY + 1, oldX)
+                    }
+
+                    Directions.RIGHT -> {
+                        Pair(oldY, oldX + 1)
+                    }
+                }
+
+                hill[ant.currentStep.first][ant.currentStep.second] = Ground.SPACE.strVal
+
+                ant.step++
+            }
+            ants.addAll(newAnts)
             //printAnthill()
         }
     }
 
+    private fun canAntsMove(): Boolean {
+        for (ant in ants)
+            if (ant.canMove)
+                return true
+        return false
+    }
+
     private fun getAvailableDirectionsForNextStep(ant: Ant): List<Directions> {
-        var availableDirections = mutableListOf<Directions>()
+        val availableDirections = mutableListOf<Directions>()
         val (currY, currX) = ant.currentStep
 
         // check for move LEFT
         if (currX - 1 >= 0)
-            if (hill[currY][currX - 1] != SPACE
-                && hill[currY][currX - 1] != STONE
+            if (hill[currY][currX - 1] != Ground.SPACE.strVal
+                && hill[currY][currX - 1] != Ground.STONE.strVal
                 && !haveSpaceOnTop(currY, currX - 1)
                 && !haveSpaceOnLeft(currY, currX - 1)
                 && !haveSpaceOnBottom(currY, currX - 1)
@@ -240,8 +221,8 @@ class Anthill(
 
         // check for move DOWN
         if (currY + 1 < height)
-            if (hill[currY + 1][currX] != SPACE
-                && hill[currY + 1][currX] != STONE
+            if (hill[currY + 1][currX] != Ground.SPACE.strVal
+                && hill[currY + 1][currX] != Ground.STONE.strVal
                 && !haveSpaceOnRight(currY + 1, currX)
                 && !haveSpaceOnLeft(currY + 1, currX)
                 && !haveSpaceOnBottom(currY + 1, currX)
@@ -250,8 +231,8 @@ class Anthill(
 
         // check for move RIGHT
         if (currX + 1 < width)
-            if (hill[currY][currX + 1] != SPACE
-                && hill[currY][currX + 1] != STONE
+            if (hill[currY][currX + 1] != Ground.SPACE.strVal
+                && hill[currY][currX + 1] != Ground.STONE.strVal
                 && !haveSpaceOnTop(currY, currX + 1)
                 && !haveSpaceOnRight(currY, currX + 1)
                 && !haveSpaceOnBottom(currY, currX + 1)
@@ -264,7 +245,7 @@ class Anthill(
 
     private fun haveSpaceOnTop(y: Int, x: Int): Boolean {
         if (y - 1 >= 0)
-            if (hill[y - 1][x] == SPACE) {
+            if (hill[y - 1][x] == Ground.SPACE.strVal) {
 //                println("=================================")
 //                println("space on top for y=${y} x=$x")
                 return true
@@ -274,7 +255,7 @@ class Anthill(
 
     private fun haveSpaceOnLeft(y: Int, x: Int): Boolean {
         if (x - 1 >= 0)
-            if (hill[y][x - 1] == SPACE) {
+            if (hill[y][x - 1] == Ground.SPACE.strVal) {
 //                println("=================================")
 //                println("space on left for y=$y x=${x}")
                 return true
@@ -284,7 +265,7 @@ class Anthill(
 
     private fun haveSpaceOnRight(y: Int, x: Int): Boolean {
         if (x + 1 < width)
-            if (hill[y][x + 1] == SPACE) {
+            if (hill[y][x + 1] == Ground.SPACE.strVal) {
 //                println("=================================")
 //                println("space on left for y=$y x=${x}")
                 return true
@@ -294,7 +275,7 @@ class Anthill(
 
     private fun haveSpaceOnBottom(y: Int, x: Int): Boolean {
         if (y + 1 < height)
-            if (hill[y + 1][x] == SPACE) {
+            if (hill[y + 1][x] == Ground.SPACE.strVal) {
 //                println("=================================")
 //                println("space on down for y=${y} x=$x")
                 return true
@@ -302,10 +283,11 @@ class Anthill(
         return false
     }
 
-    companion object {
-        const val GROUND = "▒▒▒"
-        const val STONE = "███"
-        const val SPACE = "   "
+    enum class Ground
+        (val strVal: String) {
+        GROUND("▒▒▒"),
+        STONE("███"),
+        SPACE("   ")
     }
 
     enum class Directions {
