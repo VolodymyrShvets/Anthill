@@ -56,77 +56,24 @@ class Anthill(
 
         while (remainingArea > 0) {
             val stone = StoneType.entries.toTypedArray().random()
-            remainingArea -= stone.area
+            var stoneWidth = stone.width
+            var stoneHeight = stone.height
+
+            remainingArea -= (stoneWidth * stoneHeight)
             //println("adding ${stone.name}, remaining area: $remainingArea")
             val x = Random.nextInt(width)
             val y = Random.nextInt(height)
 
-            when (stone) {
-                StoneType.SMALL -> {
-                    placeSmallStone(x, y, Random.nextBoolean())
-                }
+            if (Random.nextBoolean())
+                stoneWidth = stoneHeight.also { stoneHeight = stoneWidth }
 
-                StoneType.MEDIUM -> {
-                    placeMediumStone(x, y)
-                }
-
-                StoneType.BIG -> {
-                    placeBigStone(x, y, Random.nextBoolean())
-                }
-            }
+            for (yS in y..<(y + stoneWidth))
+                for (xS in x..<(x + stoneHeight))
+                    if (yS < width && xS < height)
+                        hill[yS][xS] = Ground.STONE.strVal
         }
 
         //println("Stones List: $stonesList")
-    }
-
-    private fun placeSmallStone(x: Int, y: Int, isHorizontal: Boolean) { // TODO refactor stone placement
-        hill[y][x] = Ground.STONE.strVal
-        if (isHorizontal) {
-            if (x + 1 < width)
-                hill[y][x + 1] = Ground.STONE.strVal
-        } else {
-            if (y + 1 < height)
-                hill[y + 1][x] = Ground.STONE.strVal
-        }
-    }
-
-    private fun placeMediumStone(x: Int, y: Int) {
-        hill[y][x] = Ground.STONE.strVal
-        if (x + 1 < width)
-            hill[y][x + 1] = Ground.STONE.strVal
-        if (y + 1 < height)
-            hill[y + 1][x] = Ground.STONE.strVal
-        if (x + 1 < width && y + 1 < height)
-            hill[y + 1][x + 1] = Ground.STONE.strVal
-    }
-
-    private fun placeBigStone(x: Int, y: Int, isHorizontal: Boolean) {
-        hill[y][x] = Ground.STONE.strVal
-        if (isHorizontal) {
-            if (x + 1 < width)
-                hill[y][x + 1] = Ground.STONE.strVal
-            if (x + 2 < width)
-                hill[y][x + 2] = Ground.STONE.strVal
-            if (y + 1 < height) {
-                hill[y + 1][x] = Ground.STONE.strVal
-                if (x + 1 < width)
-                    hill[y + 1][x + 1] = Ground.STONE.strVal
-                if (x + 2 < width)
-                    hill[y + 1][x + 2] = Ground.STONE.strVal
-            }
-        } else {
-            if (y + 1 < height)
-                hill[y + 1][x] = Ground.STONE.strVal
-            if (y + 2 < height)
-                hill[y + 2][x] = Ground.STONE.strVal
-            if (x + 1 < width) {
-                hill[y][x + 1] = Ground.STONE.strVal
-                if (y + 1 < height)
-                    hill[y + 1][x + 1] = Ground.STONE.strVal
-                if (y + 2 < height)
-                    hill[y + 2][x + 1] = Ground.STONE.strVal
-            }
-        }
     }
 
     fun startDigging() {
@@ -136,7 +83,7 @@ class Anthill(
         if (ants.isEmpty())
             return
 
-        while (canAntsMove()) {
+        while (ants.any { it.canMove }) {
             val newAnts: MutableList<Ant> = mutableListOf()
 
             for (ant in ants) {
@@ -149,11 +96,11 @@ class Anthill(
 
                         if (stopOrNo > continueMovingPercentage) {
                             //println("$stopOrNo -- end of life for ant ${ant.currentStep.first} ${ant.currentStep.second}")
-                            ant.apply { canMove = false }
+                            ant.canMove = false
                         }
                         if (addNewAntOrNo < addNewAntPercentage) {
                             //println("$addNewAntOrNo -- adding new ant for ${ant.currentStep.first} ${ant.currentStep.second}")
-                            ant.apply { step = 1 }
+                            ant.step = 1
                             newAnts.add(
                                 Ant(Pair(ant.currentStep.first, ant.currentStep.second))
                             )
@@ -166,7 +113,7 @@ class Anthill(
 
                 if (availableDirections.isEmpty()) {
                     //println("no moves for ant ${ant.currentStep.first} ${ant.currentStep.second}")
-                    ant.apply { canMove = false }
+                    ant.canMove = false
                     continue
                 }
 
@@ -196,13 +143,6 @@ class Anthill(
             ants.addAll(newAnts)
             //printAnthill()
         }
-    }
-
-    private fun canAntsMove(): Boolean {
-        for (ant in ants)
-            if (ant.canMove)
-                return true
-        return false
     }
 
     private fun getAvailableDirectionsForNextStep(ant: Ant): List<Directions> {
@@ -297,9 +237,9 @@ class Anthill(
     }
 
     enum class StoneType
-        (val area: Int) {
-        SMALL(2),  // 2x1
-        MEDIUM(4), // 2x2
-        BIG(6)     // 2x3
+        (val width: Int, val height: Int) {
+        SMALL(2, 1),  // 2x1
+        MEDIUM(2, 2), // 2x2
+        BIG(2, 3);     // 2x3
     }
 }
