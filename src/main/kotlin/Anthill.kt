@@ -31,7 +31,8 @@ class Anthill(
 //        }
     }
 
-    fun printAnthillIntoFile(file: File) {
+    fun printAnthillIntoFile(fileName: String = "anthill.txt") {
+        val file = File(fileName)
         file.printWriter().use { out ->
             for (row in hill) {
                 for (element in row) {
