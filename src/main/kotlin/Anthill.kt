@@ -1,4 +1,7 @@
+import java.awt.Color
+import java.awt.image.BufferedImage
 import java.io.File
+import javax.imageio.ImageIO
 import kotlin.random.Random
 
 class Anthill(
@@ -8,7 +11,7 @@ class Anthill(
     private val continueMovingPercentage: Float,
     private val addNewAntPercentage: Float
 ) {
-    private val hill: Array<Array<String>> = Array(height) { Array(width) { Ground.GROUND.strVal } }
+    private val hill: Array<Array<Ground>> = Array(height) { Array(width) { Ground.GROUND } }
     private var ants: MutableList<Ant> = mutableListOf()
 
     fun printAnthill() {
@@ -19,7 +22,7 @@ class Anthill(
         for ((j, row) in hill.withIndex()) {
             print("%3d".format(j))
             for (element in row) {
-                print(" $element")
+                print(" ${element.strVal}")
             }
             println()
         }
@@ -36,7 +39,7 @@ class Anthill(
         file.printWriter().use { out ->
             for (row in hill) {
                 for (element in row) {
-                    out.append(element)
+                    out.append(element.strVal)
                 }
                 out.append("\n")
             }
@@ -44,8 +47,8 @@ class Anthill(
     }
 
     private fun digEntry() {
-        if (hill[0][width / 2] != Ground.STONE.strVal) {
-            hill[0][width / 2] = Ground.SPACE.strVal
+        if (hill[0][width / 2] != Ground.STONE) {
+            hill[0][width / 2] = Ground.SPACE
             ants.add(Ant(Pair(0, width / 2)))
         }
     }
@@ -71,7 +74,7 @@ class Anthill(
             for (yS in y..<(y + stoneWidth))
                 for (xS in x..<(x + stoneHeight))
                     if (yS < width && xS < height)
-                        hill[yS][xS] = Ground.STONE.strVal
+                        hill[yS][xS] = Ground.STONE
         }
 
         //println("Stones List: $stonesList")
@@ -137,7 +140,7 @@ class Anthill(
                     }
                 }
 
-                hill[ant.currentStep.first][ant.currentStep.second] = Ground.SPACE.strVal
+                hill[ant.currentStep.first][ant.currentStep.second] = Ground.SPACE
 
                 ant.step++
             }
@@ -152,8 +155,8 @@ class Anthill(
 
         // check for move LEFT
         if (currX - 1 >= 0)
-            if (hill[currY][currX - 1] != Ground.SPACE.strVal
-                && hill[currY][currX - 1] != Ground.STONE.strVal
+            if (hill[currY][currX - 1] != Ground.SPACE
+                && hill[currY][currX - 1] != Ground.STONE
                 && !haveSpaceOnTop(currY, currX - 1)
                 && !haveSpaceOnLeft(currY, currX - 1)
                 && !haveSpaceOnBottom(currY, currX - 1)
@@ -162,8 +165,8 @@ class Anthill(
 
         // check for move DOWN
         if (currY + 1 < height)
-            if (hill[currY + 1][currX] != Ground.SPACE.strVal
-                && hill[currY + 1][currX] != Ground.STONE.strVal
+            if (hill[currY + 1][currX] != Ground.SPACE
+                && hill[currY + 1][currX] != Ground.STONE
                 && !haveSpaceOnRight(currY + 1, currX)
                 && !haveSpaceOnLeft(currY + 1, currX)
                 && !haveSpaceOnBottom(currY + 1, currX)
@@ -172,8 +175,8 @@ class Anthill(
 
         // check for move RIGHT
         if (currX + 1 < width)
-            if (hill[currY][currX + 1] != Ground.SPACE.strVal
-                && hill[currY][currX + 1] != Ground.STONE.strVal
+            if (hill[currY][currX + 1] != Ground.SPACE
+                && hill[currY][currX + 1] != Ground.STONE
                 && !haveSpaceOnTop(currY, currX + 1)
                 && !haveSpaceOnRight(currY, currX + 1)
                 && !haveSpaceOnBottom(currY, currX + 1)
@@ -186,7 +189,7 @@ class Anthill(
 
     private fun haveSpaceOnTop(y: Int, x: Int): Boolean {
         if (y - 1 >= 0)
-            if (hill[y - 1][x] == Ground.SPACE.strVal) {
+            if (hill[y - 1][x] == Ground.SPACE) {
 //                println("=================================")
 //                println("space on top for y=${y} x=$x")
                 return true
@@ -196,7 +199,7 @@ class Anthill(
 
     private fun haveSpaceOnLeft(y: Int, x: Int): Boolean {
         if (x - 1 >= 0)
-            if (hill[y][x - 1] == Ground.SPACE.strVal) {
+            if (hill[y][x - 1] == Ground.SPACE) {
 //                println("=================================")
 //                println("space on left for y=$y x=${x}")
                 return true
@@ -206,7 +209,7 @@ class Anthill(
 
     private fun haveSpaceOnRight(y: Int, x: Int): Boolean {
         if (x + 1 < width)
-            if (hill[y][x + 1] == Ground.SPACE.strVal) {
+            if (hill[y][x + 1] == Ground.SPACE) {
 //                println("=================================")
 //                println("space on left for y=$y x=${x}")
                 return true
@@ -216,7 +219,7 @@ class Anthill(
 
     private fun haveSpaceOnBottom(y: Int, x: Int): Boolean {
         if (y + 1 < height)
-            if (hill[y + 1][x] == Ground.SPACE.strVal) {
+            if (hill[y + 1][x] == Ground.SPACE) {
 //                println("=================================")
 //                println("space on down for y=${y} x=$x")
                 return true
@@ -225,10 +228,10 @@ class Anthill(
     }
 
     enum class Ground
-        (val strVal: String) {
-        GROUND("▒▒▒"),
-        STONE("███"),
-        SPACE("   ")
+        (val strVal: String, val colorVal: Color) {
+        GROUND("▒▒▒", Color.GREEN),
+        STONE("███", Color.DARK_GRAY),
+        SPACE("   ", Color.WHITE)
     }
 
     enum class Directions {
