@@ -46,6 +46,16 @@ class Anthill(
         }
     }
 
+    fun createImageFromAnthill(fileName: String = "anthill.bmp") {
+        val img = BufferedImage(width, height, BufferedImage.TYPE_INT_RGB)
+
+        for (column in 0..<img.height)
+            for (row in 0..<img.width)
+                img.setRGB(row, column, hill[column][row].colorVal.rgb)
+
+        ImageIO.write(img, "bmp", File(fileName))
+    }
+
     private fun digEntry() {
         if (hill[0][width / 2] != Ground.STONE) {
             hill[0][width / 2] = Ground.SPACE
@@ -65,8 +75,8 @@ class Anthill(
 
             remainingArea -= (stoneWidth * stoneHeight)
             //println("adding ${stone.name}, remaining area: $remainingArea")
-            val x = Random.nextInt(width)
-            val y = Random.nextInt(height)
+            val y = Random.nextInt(width)
+            val x = Random.nextInt(height)
 
             if (Random.nextBoolean())
                 stoneWidth = stoneHeight.also { stoneHeight = stoneWidth }
@@ -74,7 +84,7 @@ class Anthill(
             for (yS in y..<(y + stoneWidth))
                 for (xS in x..<(x + stoneHeight))
                     if (yS < width && xS < height)
-                        hill[yS][xS] = Ground.STONE
+                        hill[xS][yS] = Ground.STONE
         }
 
         //println("Stones List: $stonesList")
@@ -229,9 +239,9 @@ class Anthill(
 
     enum class Ground
         (val strVal: String, val colorVal: Color) {
-        GROUND("▒▒▒", Color.GREEN),
-        STONE("███", Color.DARK_GRAY),
-        SPACE("   ", Color.WHITE)
+        GROUND("▒▒▒", Color(87, 71, 39)),
+        STONE("███", Color.BLACK),
+        SPACE("   ", Color.LIGHT_GRAY)
     }
 
     enum class Directions {
